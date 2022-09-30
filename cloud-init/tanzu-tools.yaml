@@ -7,10 +7,10 @@ users:
   - name: vp
     gecos: victor pupim
     sudo: ALL=(ALL) NOPASSWD:ALL
-    groups: users, admin
+    groups: users, admins
     lock_passwd: false
     shell: /bin/bash
-    plain_text_passwd: bekind
+    passwd: 73b4092cf287dabca529e7eda16a44e8c981ec43555d251916bcffbefa598efe
     ssh_authorized_keys:
       - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCpp8QTL41ymP8vdfTWOnQ7yxZzNEcU9MiVhH6KpzYhsvDlF7R+5k14rqSjj0eFPk3eVXey/GSKaMR0B/oR2Xcv96cTns3s2vFkokYJizWbdJaSX0Uq/qEZR1fTWkrooLCtsRhKXXAKdj+J999kzMCo1hN081xHyPupyaq+Z2Ut6JsAVtITHq8j+0g3SRwPC9QT2mUBz/t8M8uLzQahz6VvQK8dbDZJBiN6MwQ0OOuVk4TqfqevEzH1mkiYEYKLgkUO/wAFBfceFw+CpIe0RvAhwbonhV85LNrEg31MECNy6m13S1MV6mEEpxjPsDV2DAQjN/wt5x3UXzzP4iKKewexnx+V2ISAlXLOzopOI2Ku50XkbHQFEAM3wG6QJqdBzQVQ04tdIvjSu3VtuMr8faUoOVJWEuip1sc/sZm59OwBA1lDn+ob9H+dtUL8BQdT9S4WvdHRnJGrZzMpALFJDkI5HBNsFpaiZcHwTZXI6G4viZJUaGUcaEitxOkWD1eUvO6XF1RvKMNM8kf7ndPg8ZytLB/mvYJpa+SErOW0Qw1p2MZPHQxmfq987b5XJ2MV4kcItSBlWDz8fBNn4Z1JWgEywHT62f9KuDtxry/a/25/6f34TuWBjxDPUP8lq8ZE+kIN2J1Qi05ASAsdwYfwamoNoY4yjhf9DEhNefcm3hGlhw== pupimvictor@gmail.com
       
@@ -22,9 +22,29 @@ network:
       ens192:
           dhcp4: true
 
+## Setup Filesystem and Mount PV disk
+fs_setup:
+  - label: workspace
+    filesystem: 'ext4'
+    device: '/dev/sdb'
+    partition: 'auto'
+
+mounts:
+ - [ sdb, /workspace ]
+
+apt_upgrade: true
+packages:
+    - traceroute
+    - unzip
+    - tree
+    - jq
+
 runcmd:
-  - mkdir /home/vp/workspace
-  - wget https://10.220.46.34/wcp/plugin/linux-amd64/vsphere-plugin.zip
+  - chown root:admins /workspace
+  - chmod 774 /workspace 
+  
+  - cd /workspace
+  - wget https://10.220.12.178/wcp/plugin/linux-amd64/vsphere-plugin.zip
   - unzip vsphere-plugin.zip
   - mv bin/* /usr/local/bin/
   - tanzu init
