@@ -1,0 +1,20 @@
+namespace: vms
+namePrefix: ubuntu-
+commonLabels:
+  app: vmservice
+
+resources:
+- vm-pvc.yaml
+- vm-lb.yaml
+- vm.yaml
+
+configMapGenerator:
+- name: os-config
+  files:
+  - user-data
+
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    type: generated
+
