@@ -1,0 +1,29 @@
+#cloud-config
+## Required syntax at the start of user-data file
+## Create a user called centos and give a password of VMware1! and set it to not expire
+chpasswd:
+    list: |
+      operator:VMware1!
+    expire: false
+## Create a docker user group on the OS
+groups:
+  - docker
+users:
+## Create the default user for the OS
+  - default
+## Customise the centos user created above by adding an SSH key that's allowed to login to the VM
+## In this case, it's the SSH public key of my laptop
+  - name: operator
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCpp8QTL41ymP8vdfTWOnQ7yxZzNEcU9MiVhH6KpzYhsvDlF7R+5k14rqSjj0eFPk3eVXey/GSKaMR0B/oR2Xcv96cTns3s2vFkokYJizWbdJaSX0Uq/qEZR1fTWkrooLCtsRhKXXAKdj+J999kzMCo1hN081xHyPupyaq+Z2Ut6JsAVtITHq8j+0g3SRwPC9QT2mUBz/t8M8uLzQahz6VvQK8dbDZJBiN6MwQ0OOuVk4TqfqevEzH1mkiYEYKLgkUO/wAFBfceFw+CpIe0RvAhwbonhV85LNrEg31MECNy6m13S1MV6mEEpxjPsDV2DAQjN/wt5x3UXzzP4iKKewexnx+V2ISAlXLOzopOI2Ku50XkbHQFEAM3wG6QJqdBzQVQ04tdIvjSu3VtuMr8faUoOVJWEuip1sc/sZm59OwBA1lDn+ob9H+dtUL8BQdT9S4WvdHRnJGrZzMpALFJDkI5HBNsFpaiZcHwTZXI6G4viZJUaGUcaEitxOkWD1eUvO6XF1RvKMNM8kf7ndPg8ZytLB/mvYJpa+SErOW0Qw1p2MZPHQxmfq987b5XJ2MV4kcItSBlWDz8fBNn4Z1JWgEywHT62f9KuDtxry/a/25/6f34TuWBjxDPUP8lq8ZE+kIN2J1Qi05ASAsdwYfwamoNoY4yjhf9DEhNefcm3hGlhw== pupimvictor@gmail.com
+## Add the centos user to the sudo group and allow it to escalate to sudo without a password
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo, docker
+## Set the default shell of the user to bash
+    shell: /bin/bash
+## Enable DHCP on the default network interface provisioned in the VM
+network:
+  version: 2
+  ethernets:
+      ens192:
+          dhcp4: true
