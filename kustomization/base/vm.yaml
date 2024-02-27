@@ -11,7 +11,8 @@ spec:
     persistentVolumeClaim: 
       claimName: ubuntu-pv
   networkInterfaces:
-  - networkType: nsx-t
+  - networkName: user-workload
+    networkType: vsphere-distributed
   powerState: poweredOn
   vmMetadata:
     configMapName: ubuntu-os-config

@@ -10,9 +10,7 @@ then
     exit 1
 fi
 
-cm_name=os-config-$(basename $cloudinit)
+cat $cloudinit | yq base64 -i $cloudinit > kustomization/base/user-data
 
-sed  "s/base64_userdata/$(base64 $cloudinit)/g" base-os-config.yaml > $cm_name
-
-echo Config Map created: $cm_name
-cat $cm_name
+echo user-data encoded from $cloudinit
+cat kustomization/base/user-data 

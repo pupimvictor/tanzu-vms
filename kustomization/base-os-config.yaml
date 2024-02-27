@@ -1,9 +1,0 @@
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-    name: os-config
-    namespace: vms
-data:
-  user-data: base64_userdata
-  hostname: tanzujumpbbox

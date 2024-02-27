@@ -1,0 +1,221 @@
+## template: jinja
+#cloud-config
+
+write_files:
+-   path: /etc/hostname
+    owner: root:root
+    permissions: '0644'
+    content: |
+      {{ ds.meta_data.hostname.split('.') | first }}
+      
+-   path: /etc/hosts
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ::1         ipv6-localhost ipv6-loopback
+      127.0.0.1   localhost {{ ds.meta_data.hostname.split('.') | first }}
+      
+-   path: /etc/ssl/certs/extensions-tls.crt
+    owner: root:root
+    permissions: '0644'
+    content: |
+      -----BEGIN CERTIFICATE-----
+      MIIDDDCCAfSgAwIBAgIQP5GpM5Oy14GKaT4gJx+yoDANBgkqhkiG9w0BAQsFADAg
+      MR4wHAYDVQQDExVrdWJlcm5ldGVzLWV4dGVuc2lvbnMwHhcNMjQwMjI3MTcwNTI2
+      WhcNMzQwMjI0MTcwNTI2WjAgMR4wHAYDVQQDExVrdWJlcm5ldGVzLWV4dGVuc2lv
+      bnMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDOKAGJJna0bRYWTBez
+      OAtuJxvEpvGo7t0CXxmDHdOnsIlDVjU5TH2a85uxqJ9RoRw5+rDg6Voxpmb+IYUY
+      Y82+T2LzXevJ22QLJeth07BZfJSpNm4ky4dI1xbsEqWIuFp8GECZhylyjjxpdCip
+      Ogpmjf7jyEibryiCOF4WdXMscq2iaMQMdY4PshQRpem2zFNirN/vDzQSWPiZoaDt
+      cGAmUuvluht2QlNw6j/va+Gj7qdVDkJxID7CHCyGTL7c701XQbwGWfTCWpbihy0V
+      e/zfVh66S8zx391F3Dj70PAlg9KxzDugh1sbLi4SlgQJPNJ0MIHwrZ1HF1FRuVvu
+      b8yrAgMBAAGjQjBAMA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTADAQH/MB0G
+      A1UdDgQWBBSAznqVX+9tXMGAgM1sCyTnSXGhDjANBgkqhkiG9w0BAQsFAAOCAQEA
+      K1SHf8XbUi2TkV+v7oc9o2sOwURH0zx7RXciFNLikU7ldyVP5ejqFeg1mCSkXvSh
+      z9+sGLy8qW5CVk6QXb/lFpbWBCp6MlNYweyE10nwfezYJtnreBoRqXtVDMJ2iN0P
+      sRPSGL6W+phidTglhK1bRbt3NrE90zHCCpxbLXO25MmqpJl65+BwgpxSWr+A995r
+      zzWNz+M8SbifnRuwFO1CvQx1U9GAGTBAAihsZUcq2Nl58gh2A1PAqYw9IzHAs+oi
+      FGCyBp0HwXojExzqfCfSwk9dlwMRHoLWZv9QcpUEU+0jXhzTugP5KBRYzRYJcsLu
+      /UfaOTIddziyJAJvHYrNDA==
+      -----END CERTIFICATE-----
+      
+-   path: /usr/local/bin/kubeadm-bootstrap-script
+    owner: root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Copyright 2020 The Kubernetes Authors.
+      #
+      # Licensed under the Apache License, Version 2.0 (the "License");
+      # you may not use this file except in compliance with the License.
+      # You may obtain a copy of the License at
+      #
+      #     http://www.apache.org/licenses/LICENSE-2.0
+      #
+      # Unless required by applicable law or agreed to in writing, software
+      # distributed under the License is distributed on an "AS IS" BASIS,
+      # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      # See the License for the specific language governing permissions and
+      # limitations under the License.
+      
+      # Log an error and exit.
+      # Args:
+      #   $1 Message to log with the error
+      #   $2 The error code to return
+      log::error_exit() {
+        local message="${1}"
+        local code="${2}"
+      
+        log::error "${message}"
+        # 
+        log::info "Resetting kubeadm"
+        kubeadm reset -f || true
+        log::error "cluster.x-k8s.io kubeadm bootstrap script $0 exiting with status ${code}"
+        exit "${code}"
+      }
+      
+      log::success_exit() {
+        log::info "cluster.x-k8s.io kubeadm bootstrap script $0 finished"
+        exit 0
+      }
+      
+      # Log an error but keep going.
+      log::error() {
+        local message="${1}"
+        timestamp=$(date --iso-8601=seconds)
+        echo "!!! [${timestamp}] ${1}" >&2
+        shift
+        for message; do
+          echo "    ${message}" >&2
+        done
+      }
+      
+      # Print a status line.  Formatted to show up in a stream of output.
+      log::info() {
+        timestamp=$(date --iso-8601=seconds)
+        echo "+++ [${timestamp}] ${1}"
+        shift
+        for message; do
+          echo "    ${message}"
+        done
+      }
+      
+      check_kubeadm_command() {
+        local command="${1}"
+        local code="${2}"
+        case ${code} in
+        "0")
+          log::info "kubeadm reported successful execution for ${command}"
+          ;;
+        "1")
+          log::error "kubeadm reported failed action(s) for ${command}"
+          ;;
+        "2")
+          log::error "kubeadm reported preflight check error during ${command}"
+          ;;
+        "3")
+          log::error_exit "kubeadm reported validation error for ${command}" "${code}"
+          ;;
+        *)
+          log::error "kubeadm reported unknown error ${code} for ${command}"
+          ;;
+        esac
+      }
+      
+      function retry-command() {
+        n=0
+        local kubeadm_return
+        until [ $n -ge 5 ]; do
+          log::info "running '$*'"
+          # shellcheck disable=SC1083
+          "$@" --config=/run/kubeadm/kubeadm-join-config.yaml --v 2
+          kubeadm_return=$?
+          check_kubeadm_command "'$*'" "${kubeadm_return}"
+          if [ ${kubeadm_return} -eq 0 ]; then
+            break
+          fi
+          # We allow preflight errors to pass
+          if [ ${kubeadm_return} -eq 2 ]; then
+            break
+          fi
+          n=$((n + 1))
+          sleep 15
+        done
+        if [ ${kubeadm_return} -ne 0 ]; then
+          log::error_exit "too many errors, exiting" "${kubeadm_return}"
+        fi
+      }
+      
+      # 
+      
+      retry-command kubeadm join phase preflight --ignore-preflight-errors=DirAvailable--etc-kubernetes-manifests
+      # 
+      retry-command kubeadm join phase kubelet-start
+      # 
+      
+      log::success_exit
+      
+-   path: /run/kubeadm/kubeadm-join-config.yaml
+    owner: root:root
+    permissions: '0640'
+    content: |
+      ---
+      apiVersion: kubeadm.k8s.io/v1beta3
+      discovery:
+        bootstrapToken:
+          apiServerEndpoint: 10.220.48.68:6443
+          caCertHashes:
+          - sha256:18ac8a5e1fe1d78b95b5b6663326a381bf3ed93ee00314619341e36be47e7e22
+          token: nqmahu.rpx0nrmtvzysu1qt
+      kind: JoinConfiguration
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: external
+          event-qps: "0"
+          node-labels: run.tanzu.vmware.com/kubernetesDistributionVersion=v1.23.8_vmware.3-tkg.1.ubuntu
+          protect-kernel-defaults: "true"
+          read-only-port: "0"
+          register-with-taints: ""
+          resolv-conf: /run/systemd/resolve/resolv.conf
+          tls-cipher-suites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        taints: null
+      
+-   path: /run/cluster-api/placeholder
+    owner: root:root
+    permissions: '0640'
+    content: "This placeholder file is used to create the /run/cluster-api sub directory in a way that is compatible with both Linux and Windows (mkdir -p /run/cluster-api does not work with Windows)"
+runcmd:
+  - "set -xe"
+  - "cloud-init single --name write-files --frequency always"
+  - "vmtoolsd --cmd 'info-set guestinfo.userdata  '"
+  - "hostname \"{{ ds.meta_data.hostname.split('.') | first }}\""
+  - "sed -i -e \"s/^preserve_hostname: .*/preserve_hostname: true/\" /etc/cloud/cloud.cfg"
+  - "echo -e 'kernel.panic_on_oops=1\\nkernel.panic=10\\nvm.overcommit_memory=1' >> /etc/sysctl.d/kubelet.conf && sysctl -p /etc/sysctl.d/kubelet.conf"
+  - "set +xe; echo 'vmware-system-user':'XPqKnMcopR+e4/0AqIDBeScgk+ikBVViwBoMCojV2FU=' | chpasswd ; retcode=$?; if [ \"$retcode\" -ne 0 ]; then  echo \"Error: chpasswd failed for user 'vmware-system-user' with exit code $retcode. Will disable password login for user 'vmware-system-user'\"; passwd -l 'vmware-system-user'; fi; set -xe"
+  - "cp /etc/ssl/certs/extensions-tls.crt /usr/local/share/ca-certificates/"
+  - "/usr/sbin/update-ca-certificates"
+  - "systemctl set-property docker.service TasksMax=infinity"
+  - "systemctl daemon-reload"
+  - "systemctl enable containerd"
+  - "systemctl is-enabled --quiet containerd.service && systemctl restart containerd.service"
+  - "if systemctl is-enabled --quiet containerd.service ; then \\\n  running=false; \\\n  for _ in {1..15}; do crictl ps > /dev/null 2>&1 && running=true && break; sleep 1s; done; \\\n  if [[ \"${running}\" != true ]]; then echo \"WARNING: containerd may not be running\"; exit 1; fi; \\\nfi"
+  - "systemctl enable kubelet"
+  - "systemctl start kubelet"
+  - "if [ -f /root/kubeadm-complete ]; then echo \"Kubeadm already completed - terminating early\"; exit 0; fi"
+  - /usr/local/bin/kubeadm-bootstrap-script && echo success > /run/cluster-api/bootstrap-success.complete
+  - "touch /root/kubeadm-complete"
+ntp:
+  enabled: true
+  servers:
+    - time1.oc.vmware.com
+    - time2.oc.vmware.com
+    - time3.oc.vmware.com
+    - time4.oc.vmware.com
+users:
+  - name: vmware-system-user
+    passwd: XPqKnMcopR+e4/0AqIDBeScgk+ikBVViwBoMCojV2FU=
+    lock_passwd: false
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCyrmoCjaRfqpTYsjceipJEOQDwSHNlR0a+8/QRt6f4aRmIy3LNIOj3c+GUJTcqQGbXKClogoODmlpEan6/gwh37kjZUX6eOD635bpA3SwPmUD5atzk0Ojyc/uihu6Zkle2OgwKirNdvDtCZ62xwjZXkrJ3sHu57LHx6DhWkSshZ7Qi/ldXNZV+to6z3bGT1ONZSDGLUnUd7c/xAgyD9u/H5Sr7vihKnyh0/r6mR/byyIWQ7VYWFYXJnt6SMI2uDdfvJYlg+PRs6bpLWxPgG/rCNBwxZ4zhI10UbkqAjPY3RZ7ptQemNa2cTISedx1UC+oE+JfKhM+hlPTJKnvClaDMNBepZwLuji2OFLzTLQJd760GmIxuKbOrKZpyBFAJrzydnJOtxuf5LBuleLDHQaK7qMWaUmB9UVZ5TwtntIawbrAaYAQBOVrDZ30PJbjX2Hau9IFCagpGbqk8gHth1ot6ay6Kpjqe/nKfyxlkFtmiBKhK4ltXoga17ijkKJoLmmh4Rudm9/lhkD+OeLYBjPhQoyR3kUtWmiLc5XAh6mY7Lrb5kia18hn2UcAM8UMQuKQ38Mvy+Py/BDlRKo6Z5cKzS+WhSxGKfQRRAZlbVz7k0wyUE8nAqRxc8eL9w9qvOLTmAr8BPbdCV0N7uZReEgTtpYnB4GZFpTpZ5Cwqn/ySFQ==
+

@@ -10,22 +10,29 @@ This project contains the necessary resources to create and run an ubuntu VM wit
 
 ## How to Deploy
 
-### set up ssh key
+### Add a ssh public key to a cloudinit cfg file in ./cloud-init
 
-`todo`
+under `users`, add your own ssh public key:
 
-### set up cli binaries
+```yml
+ssh-authorized-keys:
+  - ssh-rsa dqmFhR1+Jyour key stuff here...
+```
 
-`todo`
+### Encode user-data
+
+`./cp-cloud-init-to-cm.sh cloud-init/vmware-basic.yaml`
 
 ### apply templates
 
-`kubectl apply -k ./kustomization`
+for the sbx env, for exemple:
+
+`kubectl apply -k ./kustomization/sbx`
 
 ### get ip
 
-`kubectl get virtualmachine ubuntu-vm  -o jsonpath='{.status.vmIp}'`
+`kubectl get virtualmachine ubuntu-vm  -o jsonpath='{.status.vmIp'`
 
 ### ssh
 
-`todo`
+`ssh -i <your-key> vmware@<vmIp>`

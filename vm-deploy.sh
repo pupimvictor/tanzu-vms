@@ -2,9 +2,9 @@
 
 set -euo pipefail
 
-./cp-cloud-init-to-cm.sh ./cloud-init/tanzu-tools.yaml
+./cp-cloud-init-to-cm.sh
 echo ""
-kubectl apply -f os-config-tanzu-tools.yaml
+# kubectl apply -f os-config-tanzu-tools.yaml
 
 if kubectl get -f vm-ubuntu.yaml -n vms
 then

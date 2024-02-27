@@ -1,29 +1,54 @@
 #cloud-config
-## Required syntax at the start of user-data file
-## Create a user called centos and give a password of VMware1! and set it to not expire
-chpasswd:
-    list: |
-      operator:VMware1!
-    expire: false
-## Create a docker user group on the OS
-groups:
-  - docker
+password: VMWARE
+ssh_pwauth: true
 users:
-## Create the default user for the OS
-  - default
-## Customise the centos user created above by adding an SSH key that's allowed to login to the VM
-## In this case, it's the SSH public key of my laptop
-  - name: operator
-    ssh-authorized-keys:
-      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCpp8QTL41ymP8vdfTWOnQ7yxZzNEcU9MiVhH6KpzYhsvDlF7R+5k14rqSjj0eFPk3eVXey/GSKaMR0B/oR2Xcv96cTns3s2vFkokYJizWbdJaSX0Uq/qEZR1fTWkrooLCtsRhKXXAKdj+J999kzMCo1hN081xHyPupyaq+Z2Ut6JsAVtITHq8j+0g3SRwPC9QT2mUBz/t8M8uLzQahz6VvQK8dbDZJBiN6MwQ0OOuVk4TqfqevEzH1mkiYEYKLgkUO/wAFBfceFw+CpIe0RvAhwbonhV85LNrEg31MECNy6m13S1MV6mEEpxjPsDV2DAQjN/wt5x3UXzzP4iKKewexnx+V2ISAlXLOzopOI2Ku50XkbHQFEAM3wG6QJqdBzQVQ04tdIvjSu3VtuMr8faUoOVJWEuip1sc/sZm59OwBA1lDn+ob9H+dtUL8BQdT9S4WvdHRnJGrZzMpALFJDkI5HBNsFpaiZcHwTZXI6G4viZJUaGUcaEitxOkWD1eUvO6XF1RvKMNM8kf7ndPg8ZytLB/mvYJpa+SErOW0Qw1p2MZPHQxmfq987b5XJ2MV4kcItSBlWDz8fBNn4Z1JWgEywHT62f9KuDtxry/a/25/6f34TuWBjxDPUP8lq8ZE+kIN2J1Qi05ASAsdwYfwamoNoY4yjhf9DEhNefcm3hGlhw== pupimvictor@gmail.com
-## Add the centos user to the sudo group and allow it to escalate to sudo without a password
+  - name: vmware
     sudo: ALL=(ALL) NOPASSWD:ALL
-    groups: sudo, docker
-## Set the default shell of the user to bash
+    lock_passwd: false
+    passwd: '$1$salt$SOC33fVbA/ZxeIwD5yw1u1'
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCkFM3yqS+uwxftjZzPsFvMGB5ii2XPsPz/UpAsLZhiyi22HwELKFFbmWONUhlfyB7RaITrT9UMDSgJN5Ydny/HGy/Mbm0R6Fmoq9OIw9clOIr1OHHhbUSTiw3NRGZRDoXg3qlAukyqNy987M7UmzivUZxOdGXzH7POB47g+M1j8w9nc/toG+pyhXJ/EkHXteC5nCktKQmDXHPbMaPfufsYHN21YrtkHlzmcBn750ihc1PM+XBfsT8xwJXlCbv3ibIjsz9T1QcvE06ZBeLHFzo0IFdm8m7ZnOf1jG1MGnjOXn6IMLhyVL9jhXT6KN/2aHCHB21zfl3c7nm94tNWIWGh481YRXIbtoVt+Nck6sePS9sI++y9LUurYvCBpVkdkGr7DpmKJvz5eJZ+T5r1QQkRuPbfTWwnXTIkeUrYXhNg9r2oZM304uRpkIaqYqFimgL+GeFQ3WK1BdqmFhR1+JrD1grcXvVZwMtxGgPF8K/OgR+MZns/EY0bIE65zUAk5TU= victorpupim@vpupim9K3XM.vmware.com
     shell: /bin/bash
-## Enable DHCP on the default network interface provisioned in the VM
-network:
-  version: 2
-  ethernets:
-      ens192:
-          dhcp4: true
+write_files:
+-   path: /etc/hostname
+    owner: root:root
+    permissions: '0644'
+    content: |
+      wcp1-sbx-jump      
+-   path: /etc/hosts
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ::1         ipv6-localhost ipv6-loopback
+      127.0.0.1   localhost wcp1-sbx-jump      
+-   path: /etc/ssl/certs/extensions-tls.crt
+    owner: root:root
+    permissions: '0644'
+    content: |
+      -----BEGIN CERTIFICATE-----
+      MIIDDDCCAfSgAwIBAgIQP5GpM5Oy14GKaT4gJx+yoDANBgkqhkiG9w0BAQsFADAg
+      MR4wHAYDVQQDExVrdWJlcm5ldGVzLWV4dGVuc2lvbnMwHhcNMjQwMjI3MTcwNTI2
+      WhcNMzQwMjI0MTcwNTI2WjAgMR4wHAYDVQQDExVrdWJlcm5ldGVzLWV4dGVuc2lv
+      bnMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDOKAGJJna0bRYWTBez
+      OAtuJxvEpvGo7t0CXxmDHdOnsIlDVjU5TH2a85uxqJ9RoRw5+rDg6Voxpmb+IYUY
+      Y82+T2LzXevJ22QLJeth07BZfJSpNm4ky4dI1xbsEqWIuFp8GECZhylyjjxpdCip
+      Ogpmjf7jyEibryiCOF4WdXMscq2iaMQMdY4PshQRpem2zFNirN/vDzQSWPiZoaDt
+      cGAmUuvluht2QlNw6j/va+Gj7qdVDkJxID7CHCyGTL7c701XQbwGWfTCWpbihy0V
+      e/zfVh66S8zx391F3Dj70PAlg9KxzDugh1sbLi4SlgQJPNJ0MIHwrZ1HF1FRuVvu
+      b8yrAgMBAAGjQjBAMA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTADAQH/MB0G
+      A1UdDgQWBBSAznqVX+9tXMGAgM1sCyTnSXGhDjANBgkqhkiG9w0BAQsFAAOCAQEA
+      K1SHf8XbUi2TkV+v7oc9o2sOwURH0zx7RXciFNLikU7ldyVP5ejqFeg1mCSkXvSh
+      z9+sGLy8qW5CVk6QXb/lFpbWBCp6MlNYweyE10nwfezYJtnreBoRqXtVDMJ2iN0P
+      sRPSGL6W+phidTglhK1bRbt3NrE90zHCCpxbLXO25MmqpJl65+BwgpxSWr+A995r
+      zzWNz+M8SbifnRuwFO1CvQx1U9GAGTBAAihsZUcq2Nl58gh2A1PAqYw9IzHAs+oi
+      FGCyBp0HwXojExzqfCfSwk9dlwMRHoLWZv9QcpUEU+0jXhzTugP5KBRYzRYJcsLu
+      /UfaOTIddziyJAJvHYrNDA==
+      -----END CERTIFICATE-----
+runcmd:
+  - "set -xe"
+  - "cloud-init single --name write-files --frequency always"
+  - "vmtoolsd --cmd 'info-set guestinfo.userdata  '"
+  - "hostname wcp1-sbx-jump"
+  - "sed -i -e \"s/^preserve_hostname: .*/preserve_hostname: true/\" /etc/cloud/cloud.cfg"
+  - "cp /etc/ssl/certs/extensions-tls.crt /usr/local/share/ca-certificates/"
+  - "/usr/sbin/update-ca-certificates"

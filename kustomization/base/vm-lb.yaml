@@ -7,10 +7,6 @@ spec:
     app: vmservice
   type: LoadBalancer
   ports:
-  - name: http
-    port: 80
-    protocol: TCP
-    targetPort: 80
   - name: ssh
     port: 22
     protocol: TCP

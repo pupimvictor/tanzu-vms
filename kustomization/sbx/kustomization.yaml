@@ -1,0 +1,4 @@
+namespace: wcp1-sbx-ns
+
+bases:
+  - ../base/
